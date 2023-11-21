@@ -1,0 +1,23 @@
+#!/bin/bash
+#===============================================================================
+#
+# This file is part of the SAS4A-SASSYS-1-Sandbox-Tools.
+#
+# See LICENSE for full details.
+#
+#===============================================================================
+#
+# Kill running SAS job that was initiated from this directory.
+# Uses ./SAS.pid
+#
+MYPID=`grep PID SAS.pid | awk '{ print $2 }'`;
+MYUSER=`grep USER SAS.pid | awk '{ print $2 }'`;
+MYHOST=`grep HOST SAS.pid | awk '{ print $2 }'`;
+#
+if [ $MYUSER ] ; then
+  ssh -n ${MYUSER}@${MYHOST} kill -9 $MYPID
+else
+  # Username is missing from SAS.pid. This seems to be the case for me in Linux.
+  # Assume the current username is consistent
+  ssh -n ${MYHOST} kill -9 $MYPID
+fi

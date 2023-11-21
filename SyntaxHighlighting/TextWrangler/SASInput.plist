@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BBEditDocumentType</key>
+	<string>CodelessLanguageModule</string>
+	<key>BBLMLanguageCode</key>
+	<string>SAS5</string>
+	<key>BBLMLanguageDisplayName</key>
+	<string>SAS4A/SASSYS-1 Input</string>
+	<key>BBLMSuffixMap</key>
+	<array>
+		<dict>
+			<key>BBLMLanguageSuffix</key>
+			<string>.inp</string>
+			<key>BBLMIsSourceKind</key>
+			<false/>
+			<key>BBLMIsHeaderKind</key>
+			<false/>
+		</dict>
+	</array>
+	<key>BBLMColorsSyntax</key>
+	<true/>
+	<key>BBLMIsCaseSensitive</key>
+	<true/>
+	<key>BBLMKeywordList</key>
+	<array>
+		<string>RESTART</string>
+		<string>INPCOM</string>
+		<string>INPMR4</string>
+		<string>INCONT</string>
+		<string>IINBOP</string>
+		<string>INEUTR</string>
+		<string>OPCIN</string>
+		<string>POWINA</string>
+		<string>PMATCM</string>
+		<string>PRIMIN</string>
+		<string>FINBOP</string>
+		<string>RNEUTR</string>
+		<string>ANEUTR</string>
+		<string>PMR4IN</string>
+		<string>INPCHN</string>
+		<string>GEOMIN</string>
+		<string>POWINC</string>
+		<string>PMATCH</string>
+		<string>COOLIN</string>
+		<string>FUELIN</string>
+		<string>XNOTES</string>
+		<string>TABLE</string>
+		<string>FUNCTION</string>
+		<string>END</string>
+		<string>ENDJOB</string>
+	</array>
+	<!-- Specify a comment-out string: -->
+	<key>BBLMCommentLineDefault</key>
+	<string>#</string>
+	<key>BBLMScansFunctions</key>
+	<true/>
+	<key>Language Features</key>
+	<dict>
+		<key>Identifier and Keyword Character Class</key>
+		<string>0-9A-Z</string>
+		<key>Comment Pattern</key>
+		<string>(^#.*$)|(!.*$)</string>
+		<key>Function Pattern</key>
+		<string>^(?P&lt;function_name&gt;INPCOM|INPMR4|INCONT|IINBOP|INEUTR|OPCIN|POWINA|PMATCM|PRIMIN|FINBOP|RNEUTR|ANEUTR|PMR4IN|INPCHN|GEOMIN|POWINC|PMATCH|COOLIN|FUELIN|TABLE|FUNCTION|XNOTES)[\s\S]+?^(    -1| *END).*$</string>
+	</dict>
+</dict>
+</plist>
