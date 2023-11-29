@@ -252,7 +252,7 @@ def readChannel(dat):
 
     channel_keys = [
         'zFuel',  'zClad',  'zCool',  'zStruct','FeJ',    'TcoolA', 'Tclad',  'Tfuel',
-        'Tcool',  'Tsat',   'fMelt',  'CmidT',  'Cmelt',  'Tstruct','Wout',   'Win',
+        'Tsat',   'fMelt',  'CmidT',  'Cmelt',  'Tcool', 'Tstruct', 'Wout',   'Win',
         'Tout',   'Tin'
     ]
     for key in channel_keys:
