@@ -11,7 +11,7 @@
 # Author: D. J. OGrady and T. H. Fanning
 # Argonne National Laboratory
 #=========================================================================================
-import os
+import os, re, copy
 import numpy as np
 
 
@@ -703,6 +703,14 @@ def Make_labels():
   - IPMP
   - Wall Heat Generation Rate in EM pump IPMP
   - EMPWHR(IPMP)
+* - 88
+  - IELL
+  - Direct Coolant Heat in Element IELL
+  - CLHEAT(IELL) 
+* - 89
+  - IELL
+  - Direct Wall Heat in Element IELL
+  - WLHEAT(IELL)                                        
 """)
     with open(file) as fin:
         lines = fin.readlines()
@@ -803,3 +811,166 @@ class Coolant:
         self.A = np.array([0.0,8.5600000E+05,0.0000000E+00,0.0000000E+00,0.0000000E+00,2.3224700E+01,2.2551900E+04,7.0464400E+02,1.4092880E+03,-2.2551900E+04,5.0865365E+08,-2.8185760E+03,1.1065000E+04,-1.2930000E+00,0.0000000E+00,1.0000000E-02,0.0000000E+00,0.0000000E+00,0.0000000E+00,0.0000000E+00,0.0000000E+00,0.0000000E+00,0.0000000E+00,0.0000000E+00,0.0000000E+00,0.0000000E+00,0.0000000E+00,0.0000000E+00,1.0431900E+00,0.0000000E+00,2.4447000E+02,-6.9038500E-02,1.0753630E-05,0.0000000E+00,0.0000000E+00,0.0000000E+00,0.0000000E+00,0.0000000E+00,0.0000000E+00,0.0000000E+00,-1.8265600E-11,2.1345600E-07,1.5034900E-05,7.0562900E-01,-1.2429400E+03,9.6901400E+05,1.0000000E+00,1.0000000E+00,3.2840000E+00,1.6170000E-02,-2.3050000E-06,0.0000000E+00,3.8692200E-04,6.5425100E-01,-1.1532800E+02,1.2483800E+05])
         self.Tc = 4.8000000E+03
 
+class ChannelGeom:
+    """
+    ChannelGeom is a class used by SASOutFile to store basic geometry information for a SAS channel.
+
+    :param iCH: Channel index
+    :param nZf: Number of axial nodes in the fuel.
+    :param nRf: Number of radial nodes in the fuel.
+    :param nZc: Number of axial nodes in the coolant. 
+    :param ChannelMesh: The elevations of the nodes in the coolant mesh.
+    :param FuelMesh: The elevations of the nodes in the fuel mesh.
+    :return: An object that will return channel geometry information.
+    """       
+    def __init__(self,iCH,nZf=0,nRf=0,nZc=0):
+        self.iCH = iCH
+        self.nZf = 0
+        self.nRf = 0
+        self.nZc = 0
+        self.ChannelMesh = np.zeros(nZc)
+        self.FuelMesh = np.zeros([nZf,nRf])
+
+class Channel:
+    """
+    Channel is a class used by SASOutFile to store basic information for a SAS channel.
+
+    :param iCH: Channel index
+    :return: An object that will return channel information.
+    """         
+    def __init__(self,iCH):
+        self.iCH = iCH        
+
+class SASOutFile:
+    """
+    SASOutFile is a class that parses and stores information from a SAS ascii output file.
+    
+    This class has not been robustly tested and is known not to work when core null transient prints
+    are present in the output file. It also may not work with INEDIT and debug prints since 
+    they may affect the parsing of the file. 
+
+    :param FileName: Name of the SAS output file.
+    :param nChan: Number of channels in the SAS case. 
+    :param fin: The SAS output file object. 
+    :param ChanDict: A dictionary containing information about channel geometry.
+    :param TimeDict: A dictionary containing data from each time step from the SAS output file. 
+    :param iChan: The number of the channel that is currently being read. 
+    :param iTime: The index of the time step that is currently being read. 
+    :return: An object that will return axial fuel and coolant temperature distributions.
+    """    
+    def __init__(self,out):
+        self.FileName = out
+        self.nChan = -1
+        self.fin = open(self.FileName,'r')
+        self.ChanDict = {0 : # Top level is time, but will not be added to
+                     {1 : ChannelGeom(1)} # Second level is channel
+                    }
+        self.TimeDict = {0 : # Top level is time step
+                          {1 : Channel(1)}, # Second level is channel
+                        "time" : [0],
+                        "timeStep" : [0],
+                    }
+        self.iChan = 1 # Starting with 1 for channel index
+        self.iTime = 0 # Starting with 0 for time index
+        self.parse()
+
+    def skipLines(self,skip=1):      
+      for i in range(skip): self.fin.readline()
+
+    def ChannelInit(self,i):
+        self.ChanDict[0][i] = ChannelGeom(i)
+        self.TimeDict[0][i] = Channel(i)
+
+    def ReadRadFuel(self):         
+        self.skipLines(2)
+        temp_array = []
+        line = self.fin.readline()
+        while line.strip():
+            temp_array.append([float(x) for x in line.split()])
+            line = self.fin.readline()
+        temp_array = np.array(temp_array)    
+        self.ChanDict[0][self.iChan].nZf = temp_array.shape[0]
+        self.TimeDict[self.iTime][self.iChan].T = temp_array[:,1:]
+
+    def ReadCool(self):       
+        self.skipLines(10)
+        if not self.ChanDict[0][self.iChan].nZc:
+            temp_array = []
+            line = self.fin.readline()
+            while "VESSEL" not in line:
+                temp_array.append([float(x) for x in line.split()])
+                line = self.fin.readline()
+            temp_array = np.array(temp_array)
+            self.ChanDict[0][self.iChan].nZc = temp_array.shape[0]
+            self.TimeDict[self.iTime][self.iChan].CoolT = temp_array[:,1]
+            self.TimeDict[self.iTime][self.iChan].CoolPres = temp_array[:,3]
+        else:
+            temp_array = []
+            line = self.fin.readline()
+            for i in range(self.ChanDict[0][self.iChan].nZc):
+                temp_array.append([float(x) for x in line.split()])
+                line = self.fin.readline()
+            temp_array = np.array(temp_array)
+            self.TimeDict[self.iTime][self.iChan].CoolT = temp_array[:,1]
+            self.TimeDict[self.iTime][self.iChan].CoolPres = temp_array[:,3]
+
+    def ReadTrans(self):  
+        self.TimeDict[self.iTime][self.iChan].mDot = float(self.fin.readline().split()[2])
+        self.skipLines(4)
+        self.TimeDict[self.iTime][self.iChan].OutP = float(self.fin.readline().split()[-1])
+        CoolT = []
+        CoolP = []
+        line = self.fin.readline()
+        for i in range(self.ChanDict[0][self.iChan].nZc):
+            temp_array = [float(x) for x in line.split()]
+            CoolT.append(temp_array[1])
+            CoolP.append(temp_array[3])
+            line = self.fin.readline()
+        self.TimeDict[self.iTime][self.iChan].CoolT = np.array(CoolT)
+        self.TimeDict[self.iTime][self.iChan].CoolPres = np.array(CoolP)
+
+    def ReadFuel(self, iSteady):       
+        self.skipLines(3+self.ChanDict[0][self.iChan].nZf)
+        if iSteady:
+            self.skipLines(4)
+        else:
+            self.skipLines(5)
+        temp_array = []
+        line = self.fin.readline()
+        for i in range(self.ChanDict[0][self.iChan].nZf):
+            temp_array.append([float(x) for x in line.split()])
+            line = self.fin.readline()
+        temp_array = np.array(temp_array)
+        self.TimeDict[self.iTime][self.iChan].CladInnerT = temp_array[:,1]
+        self.TimeDict[self.iTime][self.iChan].CladOuterT = temp_array[:,3]
+        self.TimeDict[self.iTime][self.iChan].CoolAvgT = temp_array[:,4]
+
+    def parse(self):   
+        line = self.fin.readline()
+        while(line):
+            line = self.fin.readline()
+            if "*** SASSYS/SAS4A DATA ALLOCATION ***" in line:
+                self.skipLines(2)
+                self.nChan = int(self.fin.readline().split()[0])
+                for i in range(2,self.nChan+1):
+                    self.ChannelInit(i)
+            elif re.match("^CHANNEL", line):
+                self.iChan = int(line.split()[1])
+            elif "*** STEADY STATE ***" in line:
+                self.ReadCool()
+            elif "RADIAL FUEL TEMPERATURE MESH" in line:
+                self.ReadRadFuel()
+            elif "*** TRANSIENT STATE RESULTS ON TIME STEP" in line:
+                line = line.split("STEP")[1]
+                time_step = int(line.split()[0])
+                if not np.any(time_step==self.TimeDict["timeStep"]):
+                    self.TimeDict["timeStep"].append(time_step)
+                    self.iTime += 1
+                    self.TimeDict["time"].append(float(line.split()[3]))
+                    self.TimeDict[self.iTime] = copy.deepcopy(self.TimeDict[self.iTime-1])
+                self.ReadTrans()
+            elif "RADIAL FUEL MESH" in line:
+                if "IETA" in line:
+                    self.ReadFuel(True)
+                else:
+                    self.ReadFuel(False)
