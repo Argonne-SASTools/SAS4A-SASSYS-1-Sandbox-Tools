@@ -11,7 +11,7 @@
 # Author: D. J. OGrady and T. H. Fanning
 # Argonne National Laboratory
 #=========================================================================================
-import os, re
+import os, re, copy
 import numpy as np
 
 
@@ -844,6 +844,10 @@ class Channel:
 class SASOutFile:
     """
     SASOutFile is a class that parses and stores information from a SAS ascii output file.
+    
+    This class has not been robustly tested and is known not to work when core null transient prints
+    are present in the output file. It also may not work with INEDIT and debug prints since 
+    they may affect the parsing of the file. 
 
     :param FileName: Name of the SAS output file.
     :param nChan: Number of channels in the SAS case. 
@@ -963,7 +967,7 @@ class SASOutFile:
                     self.TimeDict["timeStep"].append(time_step)
                     self.iTime += 1
                     self.TimeDict["time"].append(float(line.split()[3]))
-                    self.TimeDict[self.iTime] = self.TimeDict[self.iTime-1]
+                    self.TimeDict[self.iTime] = copy.deepcopy(self.TimeDict[self.iTime-1])
                 self.ReadTrans()
             elif "RADIAL FUEL MESH" in line:
                 if "IETA" in line:
