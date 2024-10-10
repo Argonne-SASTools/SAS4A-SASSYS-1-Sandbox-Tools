@@ -19,7 +19,8 @@ comp = args.comp
 prj_name = os.path.relpath(os.path.dirname(os.path.dirname(os.path.dirname(run_dir))), os.getcwd())
 subprocess.run(["profmerge"], cwd=run_dir, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-codecov_options = ["codecov", "-bcolor", "FFA07A", "-nopmeter", "-include-nonexec", "-prj", prj_name, "-xmlbcvrgfull", "codecoverage.xml"]
+codecov_options = ["codecov", "-bcolor", "FFA07A", "-nopmeter", "-include-nonexec", "-showdirnames", "-prj", prj_name, "-xmlbcvrgfull", "codecoverage.xml",
+                   "-beginblkdsbl", "BEGIN_EXCLUDE", "-endblkdsbl", "END_EXCLUDE", "-onelinedsbl", "NO_COVER"]
 if comp:
     codecov_options.append("-comp")
     codecov_options.append(comp)

@@ -64,6 +64,7 @@ parser.add_argument('run_dirs', help='file containing list of run directories')
 parser.add_argument('--comp', dest='comp', type=fileexists, help='file that specifies source code files to be included or excluded in code coverage report')
 parser.add_argument('--outdir', dest='outdir', help='code coverage report output directory name')
 parser.add_argument('--overwrite', action='store_true', dest='ovr', help='overwrite existing code coverage report')
+parser.add_argument('--unitbuild', dest='unitbuild', help='directory containing .dyn files from unit test execution')
 args = parser.parse_args(sys.argv[1:])
 
 run_dirs = parse_dirs(args.run_dirs)
@@ -91,16 +92,28 @@ for dir in run_dirs:
         move(dir, test_coverage_dir, "codecoverage.xml")
         dpi_list += os.path.join(os.path.dirname(os.path.dirname(os.path.relpath(dir, os.getcwd()))), "pgopti.dpi") + " "
 
-# merge dpi files into one
-subprocess.run("profmerge -a " + dpi_list, cwd=coverage_dir, check=True, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 # use spi file from first test case, they are all the same
 spi = os.path.join(run_dirs[0], "pgopti.spi")
-# run cumulative code coverage report
-codecov_options = "codecov -bcolor FFA07A -nopmeter -include-nonexec -xmlbcvrgfull codecoverage.xml -spi " + spi
+codecov_options = "codecov -bcolor FFA07A -nopmeter -include-nonexec -showdirnames -beginblkdsbl BEGIN_EXCLUDE -endblkdsbl END_EXCLUDE -onelinedsbl NO_COVER -xmlbcvrgfull codecoverage.xml -spi " + spi
 if comp:
     codecov_options += " -comp"
     codecov_options += " " + comp
 
+# If a unit test directory is provided, run code coverage report and add to list
+if args.unitbuild:
+    unitdir = args.unitbuild
+    subprocess.run(["profmerge"], cwd=unitdir, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    unit_coverage_dir = os.path.join(coverage_dir, "unit_tests")
+    os.makedirs(unit_coverage_dir)
+    individual_coverage_dirs.append(unit_coverage_dir)
+    move(unitdir, unit_coverage_dir, "pgopti.dpi")
+    subprocess.run(codecov_options, cwd=unit_coverage_dir, check=True, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    dpi_list += os.path.join(unit_coverage_dir, "pgopti.dpi")
+	
+# merge dpi files into one
+subprocess.run("profmerge -a " + dpi_list, cwd=coverage_dir, check=True, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+# run cumulative code coverage report
 subprocess.run(codecov_options, cwd=coverage_dir, check=True, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 # post process cumulative report to link to individual reports
 postprocess_report(coverage_dir, individual_coverage_dirs)
