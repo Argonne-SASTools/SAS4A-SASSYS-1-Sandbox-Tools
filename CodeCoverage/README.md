@@ -6,6 +6,18 @@ from the Argonne S&TPO office.
 
 The Intel code coverage tool is documented [here](https://www.intel.com/content/www/us/en/docs/fortran-compiler/developer-guide-reference/2023-0/code-coverage-tool.html).
 
+Both scripts using the following options when running the code coverage tool to specify markings used to exclude single lines and blocks of code from the coverage analysis: <br>
+-onelinedsbl NO_COVER <br>
+-beginblkdsbl BEGIN_EXCLUDE <br>
+-endblkdsbl END_EXCLUDE <br>
+
+To exclude a single line of source code from the coverage analysis, add the comment "! // NO_COVER" to the end of the line. 
+
+To define boundaries where the code in between is excluded from the coverage analysis, add the comment "! // BEGIN_EXCLUDE"
+at the start of the code and the comment "! // END_EXCLUDE" at the end. 
+
+After adding the comments, make sure to recompile the instrumented executable. 
+
 ## Using codecoverage_post-test.py
 This script generates a code coverage report for each test case that is run. 
 1. Compile an instrumented SAS executable using the `make coverage` target. 
@@ -30,5 +42,7 @@ from each test case. To use this script, first install the BeautifulSoup package
 2. The post-all script also has the same optional `--comp` argument, and the same input should be used as with the post-test script. For example:
 `./SASTest.py -x instrumented-sas.x --post-test "codecoverage_post-test.py --comp compfile.txt" --post-all "codecoverage_post-all.py --comp compfile.txt" TestSuite`
 
-3. By default, the cumulative code coverage report will be generated in a folder labeled using a timestamp. To specify the folder name, use the optional input `--outdir`. The script will not overwrite an existing report with a new one unless the optional argument `--overwrite` is used. For example:
+3. To add unit test coverage to the cumulative report, use the optional `--unitbuild` argument to specify the directory containing .dyn files from unit test execution. This is likely `test/build/Darwin-x86_64-coverage` (path would differ depending on OS) if the unit tests were run using the `make test-coverage` target in the SAS makefile. 
+
+4. By default, the cumulative code coverage report will be generated in a folder labeled using a timestamp. To specify the folder name, use the optional input `--outdir`. The script will not overwrite an existing report with a new one unless the optional argument `--overwrite` is used. For example:
 `./SASTest.py -x instrumented-sas.x --post-test "codecoverage_post-test.py" --post-all "codecoverage_post-all.py --outdir MYREPORT --overwrite" TestSuite`
